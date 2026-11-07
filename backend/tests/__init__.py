@@ -1,0 +1,1 @@
+"""Tests package for MU STUDY HUB verification bot."""

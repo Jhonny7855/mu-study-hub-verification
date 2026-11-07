@@ -1,0 +1,72 @@
+# MU STUDY HUB - AI Document Verification Bot
+# Full stack deployment with PostgreSQL
+
+version: "3.8"
+
+services:
+  verification-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./backend/.env:/app/.env:ro
+    environment:
+      - DATABASE_URL=postgresql://mu_study_hub:${POSTGRES_PASSWORD}@postgres:5432/mu_study_hub
+      - STORAGE_LOCAL_PATH=/app/storage
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: mu_study_hub
+      POSTGRES_USER: mu_study_hub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE=http://localhost:8000/api/v1
+    depends_on:
+      - verification-api
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.1'
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Uncomment to pull model at startup
+    # command: >
+    #   /bin/sh -c "ollama serve &sleep 5 &ollama pull qwen2.5:7b-instruct &wait"
+
+volumes:
+  postgres_data:
+  ollama_data:
